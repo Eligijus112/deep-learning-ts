@@ -25,6 +25,12 @@ with open(f'{os.getcwd()}\\conf.yml') as file:
 # Reading the data 
 d = pd.read_csv('input/DAYTON_hourly.csv')
 d['Datetime'] = [datetime.strptime(x, '%Y-%m-%d %H:%M:%S') for x in d['Datetime']]
+
+# Making sure there are no duplicated data
+# If there are some duplicates we average the data during those duplicated days
+d = d.groupby('Datetime', as_index=False)['DAYTON_MW'].mean()
+
+# Sorting the values
 d.sort_values('Datetime', inplace=True)
 
 # Initiating the class 
@@ -64,3 +70,20 @@ if len(yhat) > 0:
     plt.legend()
     plt.grid()
     plt.show()   
+    
+# Forecasting one step ahead   
+
+# Getting the last period 
+ts = d['DAYTON_MW'].tail(conf.get('lag')).values.tolist()
+
+# Creating the X matrix for the model
+X, _ = deep_learner.create_X_Y(ts, lag=conf.get('lag'))
+
+# Getting the forecast
+yhat = [y[0] for y in model.predict(X)]
+
+print(
+    f"""The forecasted value for period {max(d['Datetime']) + timedelta(hours=1)}:
+        {yhat[0]} MW
+    """
+)
