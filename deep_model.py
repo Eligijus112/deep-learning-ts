@@ -31,7 +31,7 @@ class DeepModelTS():
         self.train_test_split = train_test_split
 
     @staticmethod
-    def create_X_Y(ts: list, lag: int):
+    def create_X_Y(ts: list, lag: int) -> tuple:
         """
         A method to create X and Y matrix from a time series list for the training of 
         deep learning models 
@@ -123,7 +123,7 @@ class DeepModelTS():
 
         return model
 
-    def predict(self):
+    def predict(self) -> list:
         """
         A method to predict using the test data used in creating the class
         """
@@ -138,3 +138,28 @@ class DeepModelTS():
             yhat = [y[0] for y in self.model.predict(X_test)]
 
         return yhat
+
+    def predict_n_ahead(self, n_ahead: int):
+        """
+        A method to predict n time steps ahead
+        """    
+        X, _, _, _ = self.create_data_for_NN(use_last_n=self.lag)        
+
+        # Making the prediction list 
+        yhat = []
+
+        for _ in range(n_ahead):
+            # Making the prediction
+            fc = self.model.predict(X)
+            yhat.append(fc)
+
+            # Creating a new input matrix for forecasting
+            X = np.append(X, fc)
+
+            # Ommiting the first variable
+            X = np.delete(X, 0)
+
+            # Reshaping for the next iteration
+            X = np.reshape(X, (1, len(X), 1))
+
+        return yhat    

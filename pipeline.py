@@ -71,19 +71,50 @@ if len(yhat) > 0:
     plt.grid()
     plt.show()   
     
-# Forecasting one step ahead   
+# Forecasting n steps ahead   
 
-# Getting the last period 
-ts = d['DAYTON_MW'].tail(conf.get('lag')).values.tolist()
-
-# Creating the X matrix for the model
-X, _ = deep_learner.create_X_Y(ts, lag=conf.get('lag'))
-
-# Getting the forecast
-yhat = [y[0] for y in model.predict(X)]
-
-print(
-    f"""The forecasted value for period {max(d['Datetime']) + timedelta(hours=1)}:
-        {yhat[0]} MW
-    """
+# Creating the model using full data and forecasting n steps ahead
+deep_learner = DeepModelTS(
+    data=d, 
+    Y_var='DAYTON_MW',
+    lag=48,
+    LSTM_layer_depth=64,
+    epochs=10,
+    train_test_split=0 
 )
+
+# Fitting the model 
+deep_learner.LSTModel()
+
+# Forecasting n steps ahead
+n_ahead = 168
+yhat = deep_learner.predict_n_ahead(n_ahead)
+yhat = [y[0][0] for y in yhat]
+
+# Constructing the forecast dataframe
+fc = d.tail(400).copy() 
+fc['type'] = 'original'
+
+last_date = max(fc['Datetime'])
+hat_frame = pd.DataFrame({
+    'Datetime': [last_date + timedelta(hours=x + 1) for x in range(n_ahead)], 
+    'DAYTON_MW': yhat,
+    'type': 'forecast'
+})
+
+fc = fc.append(hat_frame)
+fc.reset_index(inplace=True, drop=True)
+
+# Ploting the forecasts 
+plt.figure(figsize=(12, 8))
+for col_type in ['original', 'forecast']:
+    plt.plot(
+        'Datetime', 
+        'DAYTON_MW', 
+        data=fc[fc['type']==col_type],
+        label=col_type
+        )
+
+plt.legend()
+plt.grid()
+plt.show()    
