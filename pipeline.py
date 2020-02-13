@@ -77,7 +77,7 @@ if len(yhat) > 0:
 deep_learner = DeepModelTS(
     data=d, 
     Y_var='DAYTON_MW',
-    lag=48,
+    lag=24,
     LSTM_layer_depth=64,
     epochs=10,
     train_test_split=0 
